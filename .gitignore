@@ -1,0 +1,25 @@
+# Maxfiy ma'lumotlar
+.env
+*.json
+!package.json
+!package-lock.json
+
+# Xavfsizlik uchun alohida e'tibor qaratilgan Google Cloud kaliti
+excel-maktabi-cashflow-bot.json
+
+# Ma'lumotlar bazasi
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python kesh fayllari
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual muhitlar
+.venv/
+venv/
+env/
+ENV/
