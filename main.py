@@ -4,7 +4,7 @@ import os
 from aiogram import Bot, Dispatcher
 from config import BOT_TOKEN
 import start
-from database import init_db, sync_with_sheets
+from database import init_db, migrate_db, sync_with_sheets
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
@@ -17,6 +17,7 @@ scheduler = AsyncIOScheduler(jobstores=jobstores, timezone="Asia/Tashkent")
 
 async def main():
     init_db()
+    migrate_db()
     
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()

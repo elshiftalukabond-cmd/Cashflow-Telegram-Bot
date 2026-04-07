@@ -32,16 +32,22 @@ def save_user_start(user_id, username):
     except Exception as e:
         print(f"Start saqlashda xatolik: {e}")
 
-def update_user_form(user_id, username, niche, revenue, accounting, phone):
+def update_user_form(user_id, username, niche, revenue, accounting, phone, created_date, created_time):
     try:
         sheet = get_sheet()
-        if not sheet: return
-        
-        cell = sheet.find(str(user_id), in_column=1)
-        if cell:
-            row = cell.row
-            sheet.update(range_name=f"B{row}:F{row}", values=[[username, niche, revenue, accounting, phone]])
-        else:
-            sheet.append_row([str(user_id), username, niche, revenue, accounting, phone])
+        if not sheet:
+            return
+
+        sheet.append_row([
+            created_date,   # A
+            created_time,   # B
+            str(user_id),   # C
+            username,       # D
+            niche,          # E
+            revenue,        # F
+            accounting,     # G
+            phone           # H
+        ])
+
     except Exception as e:
-        print(f"Anketa yangilashda xatolik: {e}")
+        print(f"Sheets yozishda xatolik: {e}")

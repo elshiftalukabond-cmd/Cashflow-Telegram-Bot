@@ -92,7 +92,7 @@ async def send_nurture_msg(chat_id: int, day_num: int):
 # Avtovoronka
 async def auto_step_2(chat_id: int, bot: Bot, prev_msg_id: int):
     try:
-        await asyncio.sleep(10) 
+        await asyncio.sleep(1200) 
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, None, config.STEP2_VIDEO_ID, TEXTS['step_2'], inline.get_step2_kb())
         if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_case_1(chat_id, bot, msg_id))
@@ -100,7 +100,7 @@ async def auto_step_2(chat_id: int, bot: Bot, prev_msg_id: int):
 
 async def auto_case_1(chat_id: int, bot: Bot, prev_msg_id: int):
     try:
-        await asyncio.sleep(10)
+        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_1_intro'], config.CASE1_VIDEO_ID, TEXTS['case_1_footer'], inline.get_case1_kb())
         if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_case_2(chat_id, bot, msg_id))
@@ -108,7 +108,7 @@ async def auto_case_1(chat_id: int, bot: Bot, prev_msg_id: int):
 
 async def auto_case_2(chat_id: int, bot: Bot, prev_msg_id: int):
     try:
-        await asyncio.sleep(10)
+        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_2_intro'], config.CASE2_VIDEO_ID, TEXTS['case_2_footer'], inline.get_case2_kb())
         if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_case_3(chat_id, bot, msg_id))
@@ -116,7 +116,7 @@ async def auto_case_2(chat_id: int, bot: Bot, prev_msg_id: int):
 
 async def auto_case_3(chat_id: int, bot: Bot, prev_msg_id: int):
     try:
-        await asyncio.sleep(10)
+        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_3_intro'], config.CASE3_VIDEO_ID, TEXTS['case_3_footer'], inline.get_case3_kb())
         if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_step_6(chat_id, bot, msg_id))
@@ -124,7 +124,7 @@ async def auto_case_3(chat_id: int, bot: Bot, prev_msg_id: int):
 
 async def auto_step_6(chat_id: int, bot: Bot, prev_msg_id: int):
     try:
-        await asyncio.sleep(10)
+        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
         if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_step_7(chat_id, bot, msg_id))
@@ -132,7 +132,7 @@ async def auto_step_6(chat_id: int, bot: Bot, prev_msg_id: int):
 
 async def auto_step_7(chat_id: int, bot: Bot, prev_msg_id: int):
     try:
-        await asyncio.sleep(10)
+        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         await safe_send_message(bot, chat_id, text=TEXTS['step_7'], reply_markup=inline.get_main_actions_kb(), parse_mode="HTML")
     except asyncio.CancelledError: pass
