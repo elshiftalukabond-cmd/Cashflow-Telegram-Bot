@@ -1,5 +1,6 @@
 import gspread
 import os
+import json
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 
@@ -13,7 +14,18 @@ scopes = [
 
 def get_sheet():
     if not SPREADSHEET_ID: return None
-    credentials = Credentials.from_service_account_file("GOOGLE_CREDENTIALS", scopes=scopes)
+    # 1. Railway'dagi Variable'dan JSON matnini o'qib olamiz
+    creds_json = os.getenv("GOOGLE_CREDENTIALS")
+    if not creds_json:
+        print("XATO: GOOGLE_CREDENTIALS topilmadi!")
+        return None
+        
+    # 2. Matnni Python tushunadigan JSON (lug'at) ga aylantiramiz
+    creds_dict = json.loads(creds_json)
+    
+    # 3. Fayldan emas (_file), Variable'dan (_info) o'qiymiz!
+    credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    
     client = gspread.authorize(credentials)
     return client.open_by_key(SPREADSHEET_ID).sheet1
 
