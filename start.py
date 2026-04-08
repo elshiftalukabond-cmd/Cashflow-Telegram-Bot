@@ -132,7 +132,7 @@ async def auto_step_6(chat_id: int, bot: Bot, prev_msg_id: int):
 
 async def auto_step_7(chat_id: int, bot: Bot, prev_msg_id: int):
     try:
-        await asyncio.sleep(1200)
+        await asyncio.sleep(180)
         await clear_markup(bot, chat_id, prev_msg_id)
         await safe_send_message(bot, chat_id, text=TEXTS['step_7'], reply_markup=inline.get_main_actions_kb(), parse_mode="HTML")
     except asyncio.CancelledError: pass

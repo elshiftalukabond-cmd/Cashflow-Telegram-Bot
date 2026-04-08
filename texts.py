@@ -13,7 +13,7 @@ TEXTS = {
     'btn_case_1': "Keyingi keys ➡️",
 
     'case_2_intro': "Bu esa agar shunday tizimni o'zingiz tayyorlasangiz qancha vaqt ketishi haqida 👇",
-    'case_2_footer': "📍 Qurilish kompaniyasi. Oylik aylanmasi ~300 mln so‘m. Bitta ham moliyaviy hisobot yo‘q.\n\nO‘quvchim tizimni noldan yaratmoqchi bo‘ldi — 3 oy qiynaldi. Moliyachilardan maslahatlar oldi. Lekin baribir juda ko'p vaqt ketdi.\n\nTayyor shablon bilan esa — bir kun.\n\nHattoki o‘qigan odam ham oylab vaqt sarfladi. Siz ham shuncha vaqt sarflaysizmi — yoki tayyorini olasizmi?",
+    'case_2_footer': "📍 Qurilish kompaniyasi. Bitta ham moliyaviy hisobot yo‘q.\n\nO‘quvchim tizimni noldan yaratmoqchi bo‘ldi — 3 oy qiynaldi. Moliyachilardan maslahatlar oldi. Lekin baribir juda ko'p vaqt ketdi.\n\nTayyor shablon bilan esa — bir kun.\n\nHattoki o‘qigan odam ham oylab vaqt sarfladi. Siz ham shuncha vaqt sarflaysizmi — yoki tayyorini olasizmi?",
     'btn_case_2': "Keyingi keys ➡️",
 
     'case_3_intro': "\"Mabodo zerikib, tashlab qo‘ysam-chi?\" — shu savolga javob quyida 👇",
