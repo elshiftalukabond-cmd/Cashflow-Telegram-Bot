@@ -4,4 +4,4 @@ gspread==6.0.0
 google-auth==2.27.0
 pytz==2024.1
 apscheduler==3.10.4
-SQLAlchemy==2.0.29
+SQLAlchemy
