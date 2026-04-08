@@ -226,21 +226,26 @@ async def process_not_now(callback: CallbackQuery):
 @router.callback_query(F.data == "buy_main")
 async def process_buy_main(callback: CallbackQuery):
     user_id = callback.from_user.id
-    if user_id in auto_tasks: auto_tasks[user_id].cancel(); del auto_tasks[user_id]
+    # Faqat 20 daqiqalik avtovoronkani bekor qilamiz (Do'jimni emas!)
+    if user_id in auto_tasks: 
+        auto_tasks[user_id].cancel()
+        del auto_tasks[user_id]
+        
     await callback.message.edit_reply_markup(reply_markup=None)
-    # To'lov haqida malumot beriladi, pastida ariza qoldirish va bog'lanish tugmalari chiqadi
+    # To'lov haqida malumot beriladi
     await callback.message.answer(TEXTS['buy_msg'], reply_markup=inline.get_after_buy_kb(), parse_mode="HTML")
     await callback.answer()
 
+# Diqqat: scheduler parametrini olib tashladik, chunki endi u bu yerda kerak emas
 @router.callback_query(F.data == "fill_form")
-async def process_fill_form(callback: CallbackQuery, state: FSMContext, scheduler: AsyncIOScheduler):
+async def process_fill_form(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
-    if user_id in auto_tasks: auto_tasks[user_id].cancel(); del auto_tasks[user_id]
+    # Faqat 20 daqiqalik avtovoronkani bekor qilamiz
+    if user_id in auto_tasks: 
+        auto_tasks[user_id].cancel()
+        del auto_tasks[user_id]
     
-    for i in [1, 2, 3]:
-        job_id = f"nurture_{user_id}_{i}"
-        if scheduler.get_job(job_id):
-            scheduler.remove_job(job_id)
+    # DO'JIM (NURTURE) BEKOR QILINMAYDI - U ISHLAYVERADI!
 
     await callback.message.edit_reply_markup(reply_markup=None)
     await state.set_state(RegState.niche)
