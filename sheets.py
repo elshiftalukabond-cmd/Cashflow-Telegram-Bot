@@ -13,7 +13,7 @@ scopes = [
 
 def get_sheet():
     if not SPREADSHEET_ID: return None
-    credentials = Credentials.from_service_account_file("excel-maktabi-cashflow-bot.json", scopes=scopes)
+    credentials = Credentials.from_service_account_file("GOOGLE_CREDENTIALS", scopes=scopes)
     client = gspread.authorize(credentials)
     return client.open_by_key(SPREADSHEET_ID).sheet1
 
