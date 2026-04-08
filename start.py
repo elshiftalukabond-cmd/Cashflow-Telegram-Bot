@@ -301,10 +301,16 @@ async def form_phone(message: Message, state: FSMContext):
     username = f"@{message.from_user.username}" if message.from_user.username else "Noma'lum"
     user_id = message.from_user.id
     
+    # Baza yangilanadi (shu paytning o'zida sana va vaqt ham yoziladi)
     db_update_form(user_id, username, niche, revenue, accounting, phone)
     
+    tz = pytz.timezone("Asia/Tashkent")
+    hozirgi_vaqt = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M")
+
+    # Xabar matniga vaqtni qo'shamiz:
     admin_text = (
         f"🔥 <b>YANGI ZAYAVKA!</b>\n\n"
+        f"📅 <b>Vaqt:</b> {hozirgi_vaqt}\n"
         f"🏢 <b>Biznes:</b> {niche}\n"
         f"💰 <b>Aylanma:</b> {revenue}\n"
         f"📊 <b>Hisob:</b> {accounting}\n"

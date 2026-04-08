@@ -67,14 +67,19 @@ def db_save_start(user_id, username):
 
 # 📝 Forma to‘ldirilganda
 def db_update_form(user_id, username, niche, revenue, accounting, phone):
+    # Toshkent vaqtini aniqlash:
+    date_str, time_str = get_current_datetime()
+    
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
+    # created_date va created_time ni ham YANGILAYMIZ
     cursor.execute('''
         UPDATE users 
-        SET username=?, niche=?, revenue=?, accounting=?, phone=?, is_synced=0 
+        SET username=?, niche=?, revenue=?, accounting=?, phone=?, 
+            created_date=?, created_time=?, is_synced=0 
         WHERE user_id=?
-    ''', (username, niche, revenue, accounting, phone, str(user_id)))
+    ''', (username, niche, revenue, accounting, phone, date_str, time_str, str(user_id)))
 
     conn.commit()
     conn.close()
