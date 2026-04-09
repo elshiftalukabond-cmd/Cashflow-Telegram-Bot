@@ -98,7 +98,7 @@ async def run_auto_step_2(chat_id: int, prev_msg_id: int):
     try:
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, None, config.STEP2_VIDEO_ID, TEXTS['step_2'], inline.get_step2_kb())
-        if msg_id: schedule_funnel_job(chat_id, 'case_1', 12, msg_id)
+        if msg_id: schedule_funnel_job(chat_id, 'case_1', 1200, msg_id)
     finally:
         await bot.session.close()
 
@@ -107,7 +107,7 @@ async def run_auto_case_1(chat_id: int, prev_msg_id: int):
     try:
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_1_intro'], config.CASE1_VIDEO_ID, TEXTS['case_1_footer'], inline.get_case1_kb())
-        if msg_id: schedule_funnel_job(chat_id, 'case_2', 12, msg_id)
+        if msg_id: schedule_funnel_job(chat_id, 'case_2', 1200, msg_id)
     finally:
         await bot.session.close()
 
@@ -116,7 +116,7 @@ async def run_auto_case_2(chat_id: int, prev_msg_id: int):
     try:
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_2_intro'], config.CASE2_VIDEO_ID, TEXTS['case_2_footer'], inline.get_case2_kb())
-        if msg_id: schedule_funnel_job(chat_id, 'case_3', 12, msg_id)
+        if msg_id: schedule_funnel_job(chat_id, 'case_3', 1200, msg_id)
     finally:
         await bot.session.close()
 
@@ -125,7 +125,7 @@ async def run_auto_case_3(chat_id: int, prev_msg_id: int):
     try:
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_3_intro'], config.CASE3_VIDEO_ID, TEXTS['case_3_footer'], inline.get_case3_kb())
-        if msg_id: schedule_funnel_job(chat_id, 'step_6', 12, msg_id)
+        if msg_id: schedule_funnel_job(chat_id, 'step_6', 1200, msg_id)
     finally:
         await bot.session.close()
 
@@ -134,7 +134,7 @@ async def run_auto_step_6(chat_id: int, prev_msg_id: int):
     try:
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
-        if msg_id: schedule_funnel_job(chat_id, 'step_7', 18, msg_id)
+        if msg_id: schedule_funnel_job(chat_id, 'step_7', 180, msg_id)
     finally:
         await bot.session.close()
 
@@ -208,7 +208,7 @@ async def cmd_start(message: Message, state: FSMContext):
     cancel_funnel(user_id) # O'tgan avtovoronkalarni tozalaymiz
     msg = await message.answer(TEXTS['step_1'], reply_markup=inline.get_step1_kb(), parse_mode="HTML")
     # Scheduler orqali birinchi qadamni rejalashtiramiz
-    schedule_funnel_job(user_id, 'step_2', 12, msg.message_id)
+    schedule_funnel_job(user_id, 'step_2', 1200, msg.message_id)
 
 @router.callback_query(F.data == "step_2")
 async def process_step_2(callback: CallbackQuery):
@@ -216,7 +216,7 @@ async def process_step_2(callback: CallbackQuery):
     cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, None, config.STEP2_VIDEO_ID, TEXTS['step_2'], inline.get_step2_kb())
-    if msg_id: schedule_funnel_job(user_id, 'case_1', 12, msg_id)
+    if msg_id: schedule_funnel_job(user_id, 'case_1', 1200, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "case_1")
@@ -225,7 +225,7 @@ async def process_case_1(callback: CallbackQuery):
     cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_1_intro'], config.CASE1_VIDEO_ID, TEXTS['case_1_footer'], inline.get_case1_kb())
-    if msg_id: schedule_funnel_job(user_id, 'case_2', 12, msg_id)
+    if msg_id: schedule_funnel_job(user_id, 'case_2', 1200, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "case_2")
@@ -234,7 +234,7 @@ async def process_case_2(callback: CallbackQuery):
     cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_2_intro'], config.CASE2_VIDEO_ID, TEXTS['case_2_footer'], inline.get_case2_kb())
-    if msg_id: schedule_funnel_job(user_id, 'case_3', 12, msg_id)
+    if msg_id: schedule_funnel_job(user_id, 'case_3', 1200, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "case_3")
@@ -243,7 +243,7 @@ async def process_case_3(callback: CallbackQuery):
     cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_3_intro'], config.CASE3_VIDEO_ID, TEXTS['case_3_footer'], inline.get_case3_kb())
-    if msg_id: schedule_funnel_job(user_id, 'step_6', 12, msg_id)
+    if msg_id: schedule_funnel_job(user_id, 'step_6', 1200, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "step_6")
@@ -252,7 +252,7 @@ async def process_step_6(callback: CallbackQuery):
     cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
-    if msg_id: schedule_funnel_job(user_id, 'step_7', 18, msg_id)
+    if msg_id: schedule_funnel_job(user_id, 'step_7', 180, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "not_now")
