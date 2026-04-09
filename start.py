@@ -6,7 +6,6 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram.filters import Command
 import ast
 import config
@@ -15,10 +14,18 @@ from texts import TEXTS
 from states import RegState
 from database import db_save_start, db_update_form
 
-router = Router()
+# --- Schedulerni markazdan chaqiramiz ---
+from scheduler_manager import scheduler
 
-auto_tasks = {}
+router = Router()
 user_forms_cache = {}
+
+# ================= YORDAMCHI FUNKSIYALAR =================
+def cancel_funnel(user_id: int):
+    """Foydalanuvchi tugma bossa, keyingi avtomatik xabarni bekor qiladi"""
+    job_id = f"funnel_{user_id}"
+    if scheduler.get_job(job_id):
+        scheduler.remove_job(job_id)
 
 async def safe_send_message(bot: Bot, chat_id: int, *args, **kwargs):
     try:
@@ -39,15 +46,12 @@ async def send_video_block(bot: Bot, chat_id: int, intro_text: str, video_data, 
     if intro_text:
         await safe_send_message(bot, chat_id, text=intro_text, parse_mode="HTML")
     
-    # 1. Agar .env dan matn (string) bo'lib kelsa, uni ro'yxatga yoki raqamga o'giramiz
     if isinstance(video_data, str):
         try:
-            # "[40, 41]" matnini haqiqiy ro'yxatga [40, 41] aylantiradi
             video_data = ast.literal_eval(video_data)
         except (ValueError, SyntaxError):
-            pass # Agar shunchaki oddiy matn bo'lsa, xato bermaydi
+            pass 
 
-    # 2. Videolarni formatlash (Int ni List ga o'girmiz)
     if isinstance(video_data, int) or (isinstance(video_data, str) and video_data.isdigit()):
         video_ids = [int(video_data)]
     elif isinstance(video_data, list) or isinstance(video_data, tuple):
@@ -55,7 +59,6 @@ async def send_video_block(bot: Bot, chat_id: int, intro_text: str, video_data, 
     else:
         video_ids = []
 
-    # 3. Videolarni ketma-ket yuborish
     for vid in video_ids:
         if vid:
             try:
@@ -64,7 +67,6 @@ async def send_video_block(bot: Bot, chat_id: int, intro_text: str, video_data, 
             except Exception as e:
                 print(f"Video xato (ID: {vid}): {e}")
             
-    # 4. Xulosa va tugmalar
     if footer_text:
         msg = await safe_send_message(bot, chat_id, text=footer_text, reply_markup=markup, parse_mode="HTML")
         return msg.message_id if msg else None
@@ -89,63 +91,97 @@ async def send_nurture_msg(chat_id: int, day_num: int):
     finally:
         await bot.session.close()
 
-# Avtovoronka
-async def auto_step_2(chat_id: int, bot: Bot, prev_msg_id: int):
+# ================= KAFOLATLANGAN AVTOVORONKA FUNKSIYALARI =================
+
+async def run_auto_step_2(chat_id: int, prev_msg_id: int):
+    bot = Bot(token=config.BOT_TOKEN)
     try:
-        await asyncio.sleep(1200) 
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, None, config.STEP2_VIDEO_ID, TEXTS['step_2'], inline.get_step2_kb())
-        if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_case_1(chat_id, bot, msg_id))
-    except asyncio.CancelledError: pass
+        if msg_id: schedule_funnel_job(chat_id, 'case_1', 12, msg_id)
+    finally:
+        await bot.session.close()
 
-async def auto_case_1(chat_id: int, bot: Bot, prev_msg_id: int):
+async def run_auto_case_1(chat_id: int, prev_msg_id: int):
+    bot = Bot(token=config.BOT_TOKEN)
     try:
-        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_1_intro'], config.CASE1_VIDEO_ID, TEXTS['case_1_footer'], inline.get_case1_kb())
-        if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_case_2(chat_id, bot, msg_id))
-    except asyncio.CancelledError: pass
+        if msg_id: schedule_funnel_job(chat_id, 'case_2', 12, msg_id)
+    finally:
+        await bot.session.close()
 
-async def auto_case_2(chat_id: int, bot: Bot, prev_msg_id: int):
+async def run_auto_case_2(chat_id: int, prev_msg_id: int):
+    bot = Bot(token=config.BOT_TOKEN)
     try:
-        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_2_intro'], config.CASE2_VIDEO_ID, TEXTS['case_2_footer'], inline.get_case2_kb())
-        if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_case_3(chat_id, bot, msg_id))
-    except asyncio.CancelledError: pass
+        if msg_id: schedule_funnel_job(chat_id, 'case_3', 12, msg_id)
+    finally:
+        await bot.session.close()
 
-async def auto_case_3(chat_id: int, bot: Bot, prev_msg_id: int):
+async def run_auto_case_3(chat_id: int, prev_msg_id: int):
+    bot = Bot(token=config.BOT_TOKEN)
     try:
-        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_3_intro'], config.CASE3_VIDEO_ID, TEXTS['case_3_footer'], inline.get_case3_kb())
-        if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_step_6(chat_id, bot, msg_id))
-    except asyncio.CancelledError: pass
+        if msg_id: schedule_funnel_job(chat_id, 'step_6', 12, msg_id)
+    finally:
+        await bot.session.close()
 
-async def auto_step_6(chat_id: int, bot: Bot, prev_msg_id: int):
+async def run_auto_step_6(chat_id: int, prev_msg_id: int):
+    bot = Bot(token=config.BOT_TOKEN)
     try:
-        await asyncio.sleep(1200)
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
-        if msg_id: auto_tasks[chat_id] = asyncio.create_task(auto_step_7(chat_id, bot, msg_id))
-    except asyncio.CancelledError: pass
+        if msg_id: schedule_funnel_job(chat_id, 'step_7', 18, msg_id)
+    finally:
+        await bot.session.close()
 
-async def auto_step_7(chat_id: int, bot: Bot, prev_msg_id: int):
+async def run_auto_step_7(chat_id: int, prev_msg_id: int):
+    bot = Bot(token=config.BOT_TOKEN)
     try:
-        await asyncio.sleep(180)
         await clear_markup(bot, chat_id, prev_msg_id)
         await safe_send_message(bot, chat_id, text=TEXTS['step_7'], reply_markup=inline.get_main_actions_kb(), parse_mode="HTML")
-    except asyncio.CancelledError: pass
-    finally: auto_tasks.pop(chat_id, None)
+    finally:
+        await bot.session.close()
+
+def schedule_funnel_job(chat_id: int, step_name: str, delay_seconds: int, prev_msg_id: int):
+    """Keyingi avtovoronka qadamini doimiy xotira (SQLite) orqali rejalashtirish"""
+    run_date = datetime.datetime.now(pytz.timezone('Asia/Tashkent')) + datetime.timedelta(seconds=delay_seconds)
+    job_id = f"funnel_{chat_id}"
+    
+    cancel_funnel(chat_id)
+        
+    func_map = {
+        'step_2': run_auto_step_2,
+        'case_1': run_auto_case_1,
+        'case_2': run_auto_case_2,
+        'case_3': run_auto_case_3,
+        'step_6': run_auto_step_6,
+        'step_7': run_auto_step_7
+    }
+    
+    scheduler.add_job(
+        func_map[step_name],
+        'date',
+        run_date=run_date,
+        args=[chat_id, prev_msg_id],
+        id=job_id,
+        replace_existing=True
+    )
+
+# ================= ASOSIY HANDLERLAR =================
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext, scheduler: AsyncIOScheduler):
+async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     user_id = message.from_user.id
     username = f"@{message.from_user.username}" if message.from_user.username else "Noma'lum"
     
     db_save_start(user_id, username)
     
+    # Nurture larni o'chirish
     for i in [1, 2, 3]:
         job_id = f"nurture_{user_id}_{i}"
         if scheduler.get_job(job_id):
@@ -169,53 +205,54 @@ async def cmd_start(message: Message, state: FSMContext, scheduler: AsyncIOSched
             id=f"nurture_{user_id}_{i}"
         )
 
-    if user_id in auto_tasks: auto_tasks[user_id].cancel()
+    cancel_funnel(user_id) # O'tgan avtovoronkalarni tozalaymiz
     msg = await message.answer(TEXTS['step_1'], reply_markup=inline.get_step1_kb(), parse_mode="HTML")
-    auto_tasks[user_id] = asyncio.create_task(auto_step_2(user_id, message.bot, msg.message_id))
+    # Scheduler orqali birinchi qadamni rejalashtiramiz
+    schedule_funnel_job(user_id, 'step_2', 1200, msg.message_id)
 
 @router.callback_query(F.data == "step_2")
 async def process_step_2(callback: CallbackQuery):
     user_id = callback.from_user.id
-    if user_id in auto_tasks: auto_tasks[user_id].cancel()
+    cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, None, config.STEP2_VIDEO_ID, TEXTS['step_2'], inline.get_step2_kb())
-    if msg_id: auto_tasks[user_id] = asyncio.create_task(auto_case_1(user_id, callback.bot, msg_id))
+    if msg_id: schedule_funnel_job(user_id, 'case_1', 1200, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "case_1")
 async def process_case_1(callback: CallbackQuery):
     user_id = callback.from_user.id
-    if user_id in auto_tasks: auto_tasks[user_id].cancel()
+    cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_1_intro'], config.CASE1_VIDEO_ID, TEXTS['case_1_footer'], inline.get_case1_kb())
-    if msg_id: auto_tasks[user_id] = asyncio.create_task(auto_case_2(user_id, callback.bot, msg_id))
+    if msg_id: schedule_funnel_job(user_id, 'case_2', 1200, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "case_2")
 async def process_case_2(callback: CallbackQuery):
     user_id = callback.from_user.id
-    if user_id in auto_tasks: auto_tasks[user_id].cancel()
+    cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_2_intro'], config.CASE2_VIDEO_ID, TEXTS['case_2_footer'], inline.get_case2_kb())
-    if msg_id: auto_tasks[user_id] = asyncio.create_task(auto_case_3(user_id, callback.bot, msg_id))
+    if msg_id: schedule_funnel_job(user_id, 'case_3', 1200, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "case_3")
 async def process_case_3(callback: CallbackQuery):
     user_id = callback.from_user.id
-    if user_id in auto_tasks: auto_tasks[user_id].cancel()
+    cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_3_intro'], config.CASE3_VIDEO_ID, TEXTS['case_3_footer'], inline.get_case3_kb())
-    if msg_id: auto_tasks[user_id] = asyncio.create_task(auto_step_6(user_id, callback.bot, msg_id))
+    if msg_id: schedule_funnel_job(user_id, 'step_6', 1200, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "step_6")
 async def process_step_6(callback: CallbackQuery):
     user_id = callback.from_user.id
-    if user_id in auto_tasks: auto_tasks[user_id].cancel()
+    cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
-    if msg_id: auto_tasks[user_id] = asyncio.create_task(auto_step_7(user_id, callback.bot, msg_id))
+    if msg_id: schedule_funnel_job(user_id, 'step_7', 180, msg_id)
     await callback.answer()
 
 @router.callback_query(F.data == "not_now")
@@ -226,27 +263,15 @@ async def process_not_now(callback: CallbackQuery):
 @router.callback_query(F.data == "buy_main")
 async def process_buy_main(callback: CallbackQuery):
     user_id = callback.from_user.id
-    # Faqat 20 daqiqalik avtovoronkani bekor qilamiz (Do'jimni emas!)
-    if user_id in auto_tasks: 
-        auto_tasks[user_id].cancel()
-        del auto_tasks[user_id]
-        
+    cancel_funnel(user_id) # Faqat avtovoronka uziladi, do'jim ishlayveradi!
     await callback.message.edit_reply_markup(reply_markup=None)
-    # To'lov haqida malumot beriladi
     await callback.message.answer(TEXTS['buy_msg'], reply_markup=inline.get_after_buy_kb(), parse_mode="HTML")
     await callback.answer()
 
-# Diqqat: scheduler parametrini olib tashladik, chunki endi u bu yerda kerak emas
 @router.callback_query(F.data == "fill_form")
 async def process_fill_form(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
-    # Faqat 20 daqiqalik avtovoronkani bekor qilamiz
-    if user_id in auto_tasks: 
-        auto_tasks[user_id].cancel()
-        del auto_tasks[user_id]
-    
-    # DO'JIM (NURTURE) BEKOR QILINMAYDI - U ISHLAYVERADI!
-
+    cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     await state.set_state(RegState.niche)
     await callback.message.answer(TEXTS['form_intro'], parse_mode="HTML")
@@ -256,7 +281,7 @@ async def process_fill_form(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "contact_admin")
 async def process_contact_admin(callback: CallbackQuery):
     user_id = callback.from_user.id
-    if user_id in auto_tasks: auto_tasks[user_id].cancel(); del auto_tasks[user_id]
+    cancel_funnel(user_id)
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(TEXTS['contact_msg'], reply_markup=inline.get_buy_form_kb(), parse_mode="HTML")
     await callback.answer()
@@ -301,13 +326,11 @@ async def form_phone(message: Message, state: FSMContext):
     username = f"@{message.from_user.username}" if message.from_user.username else "Noma'lum"
     user_id = message.from_user.id
     
-    # Baza yangilanadi (shu paytning o'zida sana va vaqt ham yoziladi)
     db_update_form(user_id, username, niche, revenue, accounting, phone)
     
     tz = pytz.timezone("Asia/Tashkent")
     hozirgi_vaqt = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M")
 
-    # Xabar matniga vaqtni qo'shamiz:
     admin_text = (
         f"🔥 <b>YANGI ZAYAVKA!</b>\n\n"
         f"📅 <b>Vaqt:</b> {hozirgi_vaqt}\n"
@@ -332,16 +355,9 @@ async def form_phone(message: Message, state: FSMContext):
 async def test_nurture_msgs(message: Message):
     user_id = message.from_user.id
     await message.answer("🛠 <b>Test boshlandi:</b> Kunlik xabarlar ketma-ket yuborilmoqda...", parse_mode="HTML")
-    
-    # 1-kun xabari
     await send_nurture_msg(user_id, 1)
-    await asyncio.sleep(3) # 3 soniya kutamiz
-    
-    # 3-kun xabari
+    await asyncio.sleep(3) 
     await send_nurture_msg(user_id, 2)
     await asyncio.sleep(3)
-    
-    # 5-kun xabari (Final)
     await send_nurture_msg(user_id, 3)
-    
-    await message.answer("✅ <b>Test yakunlandi!</b> Xabarlar va tugmalar to'g'ri ko'rinayotganini tekshiring.", parse_mode="HTML")
+    await message.answer("✅ <b>Test yakunlandi!</b>", parse_mode="HTML")
