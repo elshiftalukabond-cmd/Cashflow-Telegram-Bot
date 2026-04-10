@@ -12,8 +12,9 @@ import config
 import inline
 from texts import TEXTS
 from states import RegState
-# O'ZGARISH: db_update_step import qilindi
-from database import db_save_start, db_update_form, db_update_step 
+from database import db_save_start, db_update_form
+
+# --- Schedulerni markazdan chaqiramiz ---
 from scheduler_manager import scheduler
 
 router = Router()
@@ -21,6 +22,7 @@ user_forms_cache = {}
 
 # ================= YORDAMCHI FUNKSIYALAR =================
 def cancel_funnel(user_id: int):
+    """Foydalanuvchi tugma bossa, keyingi avtomatik xabarni bekor qiladi"""
     job_id = f"funnel_{user_id}"
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
@@ -145,6 +147,7 @@ async def run_auto_step_7(chat_id: int, prev_msg_id: int):
         await bot.session.close()
 
 def schedule_funnel_job(chat_id: int, step_name: str, delay_seconds: int, prev_msg_id: int):
+    """Keyingi avtovoronka qadamini doimiy xotira (SQLite) orqali rejalashtirish"""
     run_date = datetime.datetime.now(pytz.timezone('Asia/Tashkent')) + datetime.timedelta(seconds=delay_seconds)
     job_id = f"funnel_{chat_id}"
     
@@ -177,8 +180,8 @@ async def cmd_start(message: Message, state: FSMContext):
     username = f"@{message.from_user.username}" if message.from_user.username else "Noma'lum"
     
     db_save_start(user_id, username)
-    db_update_step(user_id, "0. Start bosildi") # <--- O'ZGARISH
     
+    # Nurture larni o'chirish
     for i in [1, 2, 3]:
         job_id = f"nurture_{user_id}_{i}"
         if scheduler.get_job(job_id):
@@ -202,15 +205,15 @@ async def cmd_start(message: Message, state: FSMContext):
             id=f"nurture_{user_id}_{i}"
         )
 
-    cancel_funnel(user_id) 
+    cancel_funnel(user_id) # O'tgan avtovoronkalarni tozalaymiz
     msg = await message.answer(TEXTS['step_1'], reply_markup=inline.get_step1_kb(), parse_mode="HTML")
+    # Scheduler orqali birinchi qadamni rejalashtiramiz
     schedule_funnel_job(user_id, 'step_2', 1200, msg.message_id)
 
 @router.callback_query(F.data == "step_2")
 async def process_step_2(callback: CallbackQuery):
     user_id = callback.from_user.id
     cancel_funnel(user_id)
-    db_update_step(user_id, "1. 1-qadam (Video)") # <--- O'ZGARISH
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, None, config.STEP2_VIDEO_ID, TEXTS['step_2'], inline.get_step2_kb())
     if msg_id: schedule_funnel_job(user_id, 'case_1', 1200, msg_id)
@@ -220,7 +223,6 @@ async def process_step_2(callback: CallbackQuery):
 async def process_case_1(callback: CallbackQuery):
     user_id = callback.from_user.id
     cancel_funnel(user_id)
-    db_update_step(user_id, "2. Case 1 bosqichi") # <--- O'ZGARISH
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_1_intro'], config.CASE1_VIDEO_ID, TEXTS['case_1_footer'], inline.get_case1_kb())
     if msg_id: schedule_funnel_job(user_id, 'case_2', 1200, msg_id)
@@ -230,7 +232,6 @@ async def process_case_1(callback: CallbackQuery):
 async def process_case_2(callback: CallbackQuery):
     user_id = callback.from_user.id
     cancel_funnel(user_id)
-    db_update_step(user_id, "3. Case 2 bosqichi") # <--- O'ZGARISH
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_2_intro'], config.CASE2_VIDEO_ID, TEXTS['case_2_footer'], inline.get_case2_kb())
     if msg_id: schedule_funnel_job(user_id, 'case_3', 1200, msg_id)
@@ -240,7 +241,6 @@ async def process_case_2(callback: CallbackQuery):
 async def process_case_3(callback: CallbackQuery):
     user_id = callback.from_user.id
     cancel_funnel(user_id)
-    db_update_step(user_id, "4. Case 3 bosqichi") # <--- O'ZGARISH
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, TEXTS['case_3_intro'], config.CASE3_VIDEO_ID, TEXTS['case_3_footer'], inline.get_case3_kb())
     if msg_id: schedule_funnel_job(user_id, 'step_6', 1200, msg_id)
@@ -250,7 +250,6 @@ async def process_case_3(callback: CallbackQuery):
 async def process_step_6(callback: CallbackQuery):
     user_id = callback.from_user.id
     cancel_funnel(user_id)
-    db_update_step(user_id, "5. Demo video bosqichi") # <--- O'ZGARISH
     await callback.message.edit_reply_markup(reply_markup=None)
     msg_id = await send_video_block(callback.bot, user_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
     if msg_id: schedule_funnel_job(user_id, 'step_7', 180, msg_id)
@@ -258,16 +257,13 @@ async def process_step_6(callback: CallbackQuery):
 
 @router.callback_query(F.data == "not_now")
 async def process_not_now(callback: CallbackQuery):
-    user_id = callback.from_user.id
-    db_update_step(user_id, "Do'jim: Hozir emas") # <--- O'ZGARISH
     await callback.message.edit_text(TEXTS['ans_not_now'])
     await callback.answer()
 
 @router.callback_query(F.data == "buy_main")
 async def process_buy_main(callback: CallbackQuery):
     user_id = callback.from_user.id
-    cancel_funnel(user_id) 
-    db_update_step(user_id, "Sotib olishni bosdi") # <--- O'ZGARISH
+    cancel_funnel(user_id) # Faqat avtovoronka uziladi, do'jim ishlayveradi!
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(TEXTS['buy_msg'], reply_markup=inline.get_after_buy_kb(), parse_mode="HTML")
     await callback.answer()
@@ -276,7 +272,6 @@ async def process_buy_main(callback: CallbackQuery):
 async def process_fill_form(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     cancel_funnel(user_id)
-    db_update_step(user_id, "📝 Anketa boshladi (niche)") # <--- O'ZGARISH
     await callback.message.edit_reply_markup(reply_markup=None)
     await state.set_state(RegState.niche)
     await callback.message.answer(TEXTS['form_intro'], parse_mode="HTML")
@@ -287,23 +282,18 @@ async def process_fill_form(callback: CallbackQuery, state: FSMContext):
 async def process_contact_admin(callback: CallbackQuery):
     user_id = callback.from_user.id
     cancel_funnel(user_id)
-    db_update_step(user_id, "Admin bilan bog'lanish") # <--- O'ZGARISH
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(TEXTS['contact_msg'], reply_markup=inline.get_buy_form_kb(), parse_mode="HTML")
     await callback.answer()
 
 @router.message(RegState.niche)
 async def form_niche(message: Message, state: FSMContext):
-    user_id = message.from_user.id
-    db_update_step(user_id, "📝 Anketa (Aylanma so'ralyapti)") # <--- O'ZGARISH
     await state.update_data(niche=message.text)
     await state.set_state(RegState.revenue)
     await message.answer(TEXTS['form_q2'], reply_markup=inline.get_revenue_kb(), parse_mode="HTML")
 
 @router.callback_query(RegState.revenue)
 async def form_revenue(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.from_user.id
-    db_update_step(user_id, "📝 Anketa (Uchyot so'ralyapti)") # <--- O'ZGARISH
     rev_map = {"rev_1": TEXTS['rev_1'], "rev_2": TEXTS['rev_2'], "rev_3": TEXTS['rev_3'], "rev_4": TEXTS['rev_4']}
     val = rev_map.get(callback.data, "Noma'lum")
     await state.update_data(revenue=val)
@@ -314,8 +304,6 @@ async def form_revenue(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(RegState.accounting)
 async def form_accounting(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.from_user.id
-    db_update_step(user_id, "📝 Anketa (Telefon so'ralyapti)") # <--- O'ZGARISH
     acc_map = {"acc_1": TEXTS['acc_1'], "acc_2": TEXTS['acc_2'], "acc_3": TEXTS['acc_3']}
     val = acc_map.get(callback.data, "Noma'lum")
     await state.update_data(accounting=val)
@@ -338,8 +326,7 @@ async def form_phone(message: Message, state: FSMContext):
     username = f"@{message.from_user.username}" if message.from_user.username else "Noma'lum"
     user_id = message.from_user.id
     
-    # db_update_form chaqirilganda 'current_step' ni '✅ Anketa toliq tugatildi' qilib o'zgartiradi
-    db_update_form(user_id, username, niche, revenue, accounting, phone) 
+    db_update_form(user_id, username, niche, revenue, accounting, phone)
     
     tz = pytz.timezone("Asia/Tashkent")
     hozirgi_vaqt = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M")
