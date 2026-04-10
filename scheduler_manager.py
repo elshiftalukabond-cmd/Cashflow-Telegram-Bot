@@ -4,4 +4,7 @@ import os
 
 os.makedirs("data", exist_ok=True)
 jobstores = {'default': SQLAlchemyJobStore(url='sqlite:///data/jobs.sqlite')}
-scheduler = AsyncIOScheduler(jobstores=jobstores, timezone="Asia/Tashkent")
+job_defaults = {
+    'misfire_grace_period': 86400
+}
+scheduler = AsyncIOScheduler(jobstores=jobstores, job_defaults=job_defaults, timezone="Asia/Tashkent")

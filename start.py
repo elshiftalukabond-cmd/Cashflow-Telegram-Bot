@@ -170,8 +170,7 @@ def schedule_funnel_job(chat_id: int, step_name: str, delay_seconds: int, prev_m
         run_date=run_date,
         args=[chat_id, prev_msg_id],
         id=job_id,
-        replace_existing=True,
-        misfire_grace_period=86400
+        replace_existing=True
     )
 
 # ================= ASOSIY HANDLERLAR =================
@@ -205,8 +204,7 @@ async def cmd_start(message: Message, state: FSMContext):
             'date', 
             run_date=run_date, 
             args=[user_id, i], 
-            id=f"nurture_{user_id}_{i}",
-            misfire_grace_period=86400
+            id=f"nurture_{user_id}_{i}"
         )
 
     cancel_funnel(user_id) 
