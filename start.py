@@ -431,9 +431,38 @@ async def xatoni_tuzatish_cmd(message: Message):
 
 @router.callback_query(F.data == "restart_funnel")
 async def process_restart_funnel(callback: CallbackQuery, state: FSMContext):
-    # Foydalanuvchini boshidan boshlashiga imkon berish
+    await state.clear()
+    user_id = callback.from_user.id
+    username = f"@{callback.from_user.username}" if callback.from_user.username else "Noma'lum"
+    
+    db_save_start(user_id, username)
+    db_update_step(user_id, "0. Start bosildi")
+    
+    for i in [1, 2, 3]:
+        job_id = f"nurture_{user_id}_{i}"
+        if scheduler.get_job(job_id):
+            scheduler.remove_job(job_id)
+
+    h, m = map(int, config.NURTURE_TIME.split(":"))
+    tz = pytz.timezone('Asia/Tashkent')
+    
+    for i, day_ahead in enumerate([config.NURTURE_DAY_1, config.NURTURE_DAY_2, config.NURTURE_DAY_3], 1):
+        run_date = datetime.datetime.now(tz) + datetime.timedelta(days=day_ahead)
+        run_date = run_date.replace(hour=h, minute=m, second=0, microsecond=0)
+        
+        if run_date < datetime.datetime.now(tz):
+            run_date += datetime.timedelta(days=1)
+
+        scheduler.add_job(
+            send_nurture_msg, 
+            'date', 
+            run_date=run_date, 
+            args=[user_id, i], 
+            id=f"nurture_{user_id}_{i}"
+        )
+
+    cancel_funnel(user_id) 
     await callback.message.delete()
-    # O'z xabarini qalbaki tarzda /start bergandek yuboramiz
-    callback.message.from_user = callback.from_user
-    await cmd_start(callback.message, state)
+    msg = await callback.message.answer(TEXTS['step_1'], reply_markup=inline.get_step1_kb(), parse_mode="HTML")
+    schedule_funnel_job(user_id, 'step_2', 1200, msg.message_id)
     await callback.answer("Boshidan boshlandi!")
