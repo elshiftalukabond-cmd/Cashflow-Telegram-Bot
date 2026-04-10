@@ -135,7 +135,7 @@ async def run_auto_step_6(chat_id: int, prev_msg_id: int):
     try:
         db_update_step(chat_id, "5. Demo video bosqichi") # <--- Qadam yangilandi
         await clear_markup(bot, chat_id, prev_msg_id)
-        msg_id = await send_video_block(bot, chat_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
+        msg_id = await send_video_block(bot, chat_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], inline.get_step6_kb())
         if msg_id: schedule_funnel_job(chat_id, 'step_7', 180, msg_id)
     finally:
         await bot.session.close()
@@ -170,7 +170,8 @@ def schedule_funnel_job(chat_id: int, step_name: str, delay_seconds: int, prev_m
         run_date=run_date,
         args=[chat_id, prev_msg_id],
         id=job_id,
-        replace_existing=True
+        replace_existing=True,
+        misfire_grace_period=86400
     )
 
 # ================= ASOSIY HANDLERLAR =================
@@ -204,7 +205,8 @@ async def cmd_start(message: Message, state: FSMContext):
             'date', 
             run_date=run_date, 
             args=[user_id, i], 
-            id=f"nurture_{user_id}_{i}"
+            id=f"nurture_{user_id}_{i}",
+            misfire_grace_period=86400
         )
 
     cancel_funnel(user_id) 
@@ -257,8 +259,17 @@ async def process_step_6(callback: CallbackQuery):
     cancel_funnel(user_id)
     db_update_step(user_id, "5. Demo video bosqichi") # <--- O'ZGARISH
     await callback.message.edit_reply_markup(reply_markup=None)
-    msg_id = await send_video_block(callback.bot, user_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
+    msg_id = await send_video_block(callback.bot, user_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], inline.get_step6_kb())
     if msg_id: schedule_funnel_job(user_id, 'step_7', 180, msg_id)
+    await callback.answer()
+
+@router.callback_query(F.data == "step_7")
+async def process_step_7(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    cancel_funnel(user_id)
+    db_update_step(user_id, "6. Sotuv taklifini ko'rdi")
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(TEXTS['step_7'], reply_markup=inline.get_main_actions_kb(), parse_mode="HTML")
     await callback.answer()
 
 @router.callback_query(F.data == "not_now")

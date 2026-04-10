@@ -16,6 +16,9 @@ def get_case2_kb():
 def get_case3_kb():
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=TEXTS['btn_case_3'], callback_data="step_6")]])
 
+def get_step6_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Taklifni ko'rish ➡️", callback_data="step_7")]])
+
 def get_main_actions_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=TEXTS['btn_buy'], callback_data="buy_main")],
