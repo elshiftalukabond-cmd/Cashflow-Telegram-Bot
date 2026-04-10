@@ -86,6 +86,15 @@ def get_leads_status():
     conn.close()
     return rows
 
+# 📥 Barcha userlarni olish (Broadcast uchun)
+def get_all_users():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('SELECT user_id FROM users')
+    rows = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
 # =====================================================
 
 

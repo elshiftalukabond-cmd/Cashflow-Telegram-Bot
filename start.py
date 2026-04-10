@@ -12,7 +12,7 @@ import config
 import inline
 from texts import TEXTS
 from states import RegState
-from database import db_save_start, db_update_form, db_update_step 
+from database import db_save_start, db_update_form, db_update_step, get_all_users 
 from scheduler_manager import scheduler
 
 router = Router()
@@ -390,3 +390,52 @@ async def test_nurture_msgs(message: Message):
     await asyncio.sleep(3)
     await send_nurture_msg(user_id, 3)
     await message.answer("✅ <b>Test yakunlandi!</b>", parse_mode="HTML")
+
+@router.message(Command("xatoni_tuzatish"))
+async def xatoni_tuzatish_cmd(message: Message):
+    users = get_all_users()
+    await message.answer(f"🚀 Barcha {len(users)} ta foydalanuvchini tutib olish boshlandi...")
+    
+    # Eslatma: O'zingiz yoqtirgan stiker ID sini qo'yishingiz mumkin. Hozircha bo'sh qoldirsangiz faqat text boradi.
+    sticker_id = "CAACAgIAAxkBAAE..." 
+    
+    text = (
+        "<b>Nimadir xato ketdimi? 🤔</b>\n\n"
+        "Biroz muddat avval texnik qiyinchiliklar tufayli avtovoronkamizdagi "
+        "ayrim xabarlar sizga kelmay qolgan bo'lishi mumkin.\n\n"
+        "Shu kabi xatolik sizning biznesingizda qolib ketmasligi amaliy ishlar sizni kutib turibdi!\n"
+        "Agar oldingi bosqichlarda qolib ketgan bo'lsangiz, davom etish turini o'zingiz tanlang 👇"
+    )
+    
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Boshidan boshlash 🔄", callback_data="restart_funnel")],
+        [InlineKeyboardButton(text="Sotuv taklifini ko'rish ➡️", callback_data="step_7")]
+    ])
+    
+    count = 0
+    for u_id in users:
+        try:
+            # Agar sticker ishlamasa, u tashlab o'tiladi
+            try:
+                if sticker_id.startswith("CAACA"):
+                    await message.bot.send_sticker(u_id, sticker=sticker_id)
+            except:
+                pass
+                
+            await message.bot.send_message(u_id, text=text, reply_markup=kb, parse_mode="HTML")
+            count += 1
+            await asyncio.sleep(0.1) # limitga tushmaslik uchun
+        except Exception as e:
+            print(f"Xato (ID: {u_id}): {e}")
+            
+    await message.answer(f"✅ Qayta tutib olish yakunlandi! {count} kishiga yuborildi.")
+
+@router.callback_query(F.data == "restart_funnel")
+async def process_restart_funnel(callback: CallbackQuery, state: FSMContext):
+    # Foydalanuvchini boshidan boshlashiga imkon berish
+    await callback.message.delete()
+    # O'z xabarini qalbaki tarzda /start bergandek yuboramiz
+    callback.message.from_user = callback.from_user
+    await cmd_start(callback.message, state)
+    await callback.answer("Boshidan boshlandi!")
