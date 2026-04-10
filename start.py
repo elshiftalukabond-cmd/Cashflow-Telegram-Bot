@@ -12,7 +12,6 @@ import config
 import inline
 from texts import TEXTS
 from states import RegState
-# O'ZGARISH: db_update_step import qilindi
 from database import db_save_start, db_update_form, db_update_step 
 from scheduler_manager import scheduler
 
@@ -89,11 +88,12 @@ async def send_nurture_msg(chat_id: int, day_num: int):
     finally:
         await bot.session.close()
 
-# ================= KAFOLATLANGAN AVTOVORONKA FUNKSIYALARI =================
+# ================= KAFOLATLANGAN AVTOVORONKA FUNKSIYALARI (YANGILANDI) =================
 
 async def run_auto_step_2(chat_id: int, prev_msg_id: int):
     bot = Bot(token=config.BOT_TOKEN)
     try:
+        db_update_step(chat_id, "1. 1-qadam (Video)") # <--- Qadam yangilandi
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, None, config.STEP2_VIDEO_ID, TEXTS['step_2'], inline.get_step2_kb())
         if msg_id: schedule_funnel_job(chat_id, 'case_1', 1200, msg_id)
@@ -103,6 +103,7 @@ async def run_auto_step_2(chat_id: int, prev_msg_id: int):
 async def run_auto_case_1(chat_id: int, prev_msg_id: int):
     bot = Bot(token=config.BOT_TOKEN)
     try:
+        db_update_step(chat_id, "2. Case 1 bosqichi") # <--- Qadam yangilandi
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_1_intro'], config.CASE1_VIDEO_ID, TEXTS['case_1_footer'], inline.get_case1_kb())
         if msg_id: schedule_funnel_job(chat_id, 'case_2', 1200, msg_id)
@@ -112,6 +113,7 @@ async def run_auto_case_1(chat_id: int, prev_msg_id: int):
 async def run_auto_case_2(chat_id: int, prev_msg_id: int):
     bot = Bot(token=config.BOT_TOKEN)
     try:
+        db_update_step(chat_id, "3. Case 2 bosqichi") # <--- Qadam yangilandi
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_2_intro'], config.CASE2_VIDEO_ID, TEXTS['case_2_footer'], inline.get_case2_kb())
         if msg_id: schedule_funnel_job(chat_id, 'case_3', 1200, msg_id)
@@ -121,6 +123,7 @@ async def run_auto_case_2(chat_id: int, prev_msg_id: int):
 async def run_auto_case_3(chat_id: int, prev_msg_id: int):
     bot = Bot(token=config.BOT_TOKEN)
     try:
+        db_update_step(chat_id, "4. Case 3 bosqichi") # <--- Qadam yangilandi
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, TEXTS['case_3_intro'], config.CASE3_VIDEO_ID, TEXTS['case_3_footer'], inline.get_case3_kb())
         if msg_id: schedule_funnel_job(chat_id, 'step_6', 1200, msg_id)
@@ -130,6 +133,7 @@ async def run_auto_case_3(chat_id: int, prev_msg_id: int):
 async def run_auto_step_6(chat_id: int, prev_msg_id: int):
     bot = Bot(token=config.BOT_TOKEN)
     try:
+        db_update_step(chat_id, "5. Demo video bosqichi") # <--- Qadam yangilandi
         await clear_markup(bot, chat_id, prev_msg_id)
         msg_id = await send_video_block(bot, chat_id, None, config.DEMO_VIDEO_ID, TEXTS['step_6'], None)
         if msg_id: schedule_funnel_job(chat_id, 'step_7', 180, msg_id)
@@ -139,6 +143,7 @@ async def run_auto_step_6(chat_id: int, prev_msg_id: int):
 async def run_auto_step_7(chat_id: int, prev_msg_id: int):
     bot = Bot(token=config.BOT_TOKEN)
     try:
+        db_update_step(chat_id, "6. Sotuv taklifini ko'rdi") # <--- QADAM YANGILANDI (Endi bu bosqichda hisobot o'zgaradi)
         await clear_markup(bot, chat_id, prev_msg_id)
         await safe_send_message(bot, chat_id, text=TEXTS['step_7'], reply_markup=inline.get_main_actions_kb(), parse_mode="HTML")
     finally:
