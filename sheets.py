@@ -48,7 +48,7 @@ def update_user_form(user_id, username, niche, revenue, accounting, phone, creat
     try:
         sheet = get_sheet()
         if not sheet:
-            return
+            return False
 
         sheet.append_row([
             created_date,   # A
@@ -60,6 +60,8 @@ def update_user_form(user_id, username, niche, revenue, accounting, phone, creat
             accounting,     # G
             phone           # H
         ])
+        return True
 
     except Exception as e:
         print(f"Sheets yozishda xatolik: {e}")
+        return False

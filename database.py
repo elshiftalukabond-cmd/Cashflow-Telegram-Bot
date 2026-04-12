@@ -137,20 +137,23 @@ async def sync_with_sheets():
 
             try:
                 # Sheetsga async yuborish
-                await asyncio.to_thread(
+                success = await asyncio.to_thread(
                     update_user_form,
                     u_id, u_name, niche, rev, acc, phone, c_date, c_time
                 )
 
-                # Sync bo‘ldi deb belgilash
-                cursor.execute(
-                    'UPDATE users SET is_synced=1 WHERE user_id=?',
-                    (u_id,)
-                )
-                conn.commit()
+                if success:
+                    # Sync bo‘ldi deb belgilash
+                    cursor.execute(
+                        'UPDATE users SET is_synced=1 WHERE user_id=?',
+                        (u_id,)
+                    )
+                    conn.commit()
+                else:
+                    print(f"[SYNC FAILED]: Google Sheets qaytarildi: False. User ID: {u_id}")
 
                 # Rate limitdan saqlanish
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.5)
 
             except Exception as e:
                 print(f"[SYNC ERROR] user {u_id}: {e}")
@@ -180,7 +183,6 @@ def migrate_db():
     except:
         pass
 
-    # O'ZGARISH: Eski bazaga xavfsiz tarzda current_step ustunini qo'shish
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN current_step TEXT DEFAULT 'Start'")
     except:
@@ -188,3 +190,60 @@ def migrate_db():
 
     conn.commit()
     conn.close()
+
+async def recover_unsynced_users_from_sheet():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    try:
+        # Barcha forma to'ldirganlarni olamiz
+        cursor.execute('''
+            SELECT user_id, username, niche, revenue, accounting, phone, created_date, created_time 
+            FROM users 
+            WHERE current_step='✅ Anketa toliq tugatildi'
+        ''')
+        finished_users = cursor.fetchall()
+        
+        from sheets import get_sheet
+        
+        # Async emasligi sabab blocklanmasligi uchun to_thread ham ishlatish mumkin 
+        # ammo startupda ekanligi uchun to'g'ridan to'g'ri ishlataveramiz.
+        def fetch_sheet_ids():
+            sheet = get_sheet()
+            if not sheet: return None
+            # update_user_form orqali tushganlar C (3-chi) ustunda 
+            return sheet.col_values(3)
+
+        col_c_values = await asyncio.to_thread(fetch_sheet_ids)
+
+        if col_c_values is None:
+            print("Google Sheet topilmadi, tiklash bekor qilindi.")
+            return
+
+        sheet_form_ids = set([str(val).strip() for val in col_c_values])
+
+        recovered_count = 0
+        for row in finished_users:
+            u_id, u_name, niche, rev, acc, phone, c_date, c_time = row
+            u_id_str = str(u_id).strip()
+            
+            # Agar sheetdagi 3-ustunda bu user_id bo'lmasa, demak formasi yuklanmagan
+            if u_id_str not in sheet_form_ids:
+                print(f"[RECOVERY] {u_name} (ID: {u_id}) jadvalda yo'q, qayta yuklanmoqda...")
+                success = await asyncio.to_thread(
+                    update_user_form,
+                    u_id, u_name, niche, rev, acc, phone, c_date, c_time
+                )
+                if success:
+                    recovered_count += 1
+                    # uning is_synced flagini ham 1 ga majburan to'g'irlab qo'yamiz
+                    cursor.execute('UPDATE users SET is_synced=1 WHERE user_id=?', (u_id,))
+                    conn.commit()
+                await asyncio.sleep(0.5)
+
+        print(f"[RECOVERY] Majburiy tekshiruv va tiklash tugatildi! {recovered_count} ta qolib ketgan profil yuklandi.")
+
+    except Exception as e:
+        print(f"[RECOVERY ERROR]: {e}")
+    finally:
+        conn.close()
